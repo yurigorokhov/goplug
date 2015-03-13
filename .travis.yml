@@ -1,0 +1,5 @@
+language: go
+go: go1.3
+script: go test -v -cover  ./...
+install:
+  - go get gopkg.in/check.v1
