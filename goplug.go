@@ -10,11 +10,12 @@ import (
 
 //--- Types ---
 
-// mutable HTTP Plug object
+// Mutable HTTP Plug object
 type Plug struct {
 	Uri *url.URL
 }
 
+// Response object
 type Result struct {
 	Response *http.Response
 	Error    error
@@ -22,14 +23,14 @@ type Result struct {
 
 //--- Constructors ---
 
-// create new plug from URL
+// Create new plug from URL
 func NewFromUrl(uri *url.URL) *Plug {
 	return &Plug{
 		Uri: uri,
 	}
 }
 
-// create new plug from a string that represents a URI
+// Create new plug from a string that represents a URI
 func New(uristring string) (plug *Plug, err error) {
 	uri, err := url.Parse(uristring)
 	if err != nil {
@@ -55,7 +56,6 @@ func (p *Plug) At(paths ...string) *Plug {
 }
 
 // User With to add a query parameter to the url
-
 func (p *Plug) With(name string, value string) *Plug {
 	q := p.Uri.Query()
 	q.Set(name, value)
