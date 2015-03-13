@@ -1,6 +1,6 @@
 # GoPlug
 
-[![Build Status](https://travis-ci.org/yurigorokhov/GoPlug.svg?branch=master)](https://travis-ci.org/yurigorokhov/GoPlug)
+[![Build Status](https://travis-ci.org/yurigorokhov/goplug.svg)](https://travis-ci.org/yurigorokhov/goplug)
 
 
 HTTP Plug library using net/http. Simplifies accessing of web resources over HTTP.
