@@ -94,6 +94,11 @@ func (p *Plug) Get() (response chan Result) {
 	return response
 }
 
+// String representation of the uri
+func (p *Plug) String() string {
+	return p.Uri.String()
+}
+
 // Async POST request
 func (p *Plug) Post(reader io.Reader, contentType string) (response chan Result) {
 	response = make(chan Result)
