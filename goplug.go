@@ -99,6 +99,37 @@ func (p *Plug) String() string {
 	return p.Uri.String()
 }
 
+// Async DELETE request with no body
+func (p *Plug) Delete() (response chan Result) {
+	return p.DeleteWithBody(strings.NewReader(""), "text/plain")
+}
+
+// Async DELETE request with a body in the request
+func (p *Plug) DeleteWithBody(reader io.Reader, contentType string) (response chan Result) {
+	response = make(chan Result)
+	go performRequest(p, func() (*http.Response, error) {
+		if req, err := http.NewRequest("DELETE", p.Uri.String(), reader); err != nil {
+			return nil, err
+		} else {
+			return http.DefaultClient.Do(req)
+		}
+	}, response)
+	return response
+}
+
+// Async PUT request
+func (p *Plug) Put(reader io.Reader, contentType string) (response chan Result) {
+	response = make(chan Result)
+	go performRequest(p, func() (*http.Response, error) {
+		if req, err := http.NewRequest("PUT", p.Uri.String(), reader); err != nil {
+			return nil, err
+		} else {
+			return http.DefaultClient.Do(req)
+		}
+	}, response)
+	return response
+}
+
 // Async POST request
 func (p *Plug) Post(reader io.Reader, contentType string) (response chan Result) {
 	response = make(chan Result)
