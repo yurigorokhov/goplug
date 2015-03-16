@@ -85,6 +85,15 @@ func (p *Plug) Without(name string) *Plug {
 	return p
 }
 
+// Async HEAD request
+func (p *Plug) Head() (response chan Result) {
+	response = make(chan Result)
+	go performRequest(p, func() (*http.Response, error) {
+		return http.Head(p.Uri.String())
+	}, response)
+	return response
+}
+
 // Async GET request
 func (p *Plug) Get() (response chan Result) {
 	response = make(chan Result)
