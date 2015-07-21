@@ -14,7 +14,9 @@ import (
 	plug "github.com/yurigorokhov/goplug"
 )
 
-p, err := plug.New('http://google.com')
-r := <-p.With('q', 'my search').With('limit', '10').Get()
+p, err := plug.New("http://google.com")
+r := <-p.With("q", "my search").With('limit', '10').Get()
+
+r2 := <-p.Clone().With("format", "xml").Get()
 
 ```
