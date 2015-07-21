@@ -45,17 +45,35 @@ func New(uristring string) (plug *Plug, err error) {
 
 // Use AtPath to set the full path of the url
 func (p *Plug) AtPath(path string) *Plug {
+	if !strings.HasSuffix(p.Uri.Path, "/") {
+		p.Uri.Path = p.Uri.Path + "/"
+	}
 	p.Uri.Path = path
 	return p
 }
 
 // Use At to add segments to the url
 func (p *Plug) At(paths ...string) *Plug {
+	if !strings.HasSuffix(p.Uri.Path, "/") {
+		p.Uri.Path = p.Uri.Path + "/"
+	}
 	p.Uri.Path = p.Uri.Path + strings.Join(paths, "/")
 	return p
 }
 
-// User With to add a query parameter to the url
+// Use WithUserPassword to add an authorization header
+func (p *Plug) WithUser(username string) *Plug {
+	p.Uri.User = url.User(username)
+	return p
+}
+
+// Use WithUserPassword to add an authorization header
+func (p *Plug) WithUserPassword(username, password string) *Plug {
+	p.Uri.User = url.UserPassword(username, password)
+	return p
+}
+
+// Use With to add a query parameter to the url
 func (p *Plug) With(name string, value string) *Plug {
 	q := p.Uri.Query()
 	q.Set(name, value)
@@ -151,6 +169,30 @@ func (p *Plug) Post(reader io.Reader, contentType string) (response chan Result)
 // Async POST with text/plain
 func (p *Plug) PostPlainText(contents string) (response chan Result) {
 	return p.Post(strings.NewReader(contents), "text/plain")
+}
+
+// Clone this plug and return the copy
+func (p *Plug) Clone() *Plug {
+
+	var userInfo *url.Userinfo = nil
+	if p.Uri.User != nil {
+		if pass, ok := p.Uri.User.Password(); ok {
+			userInfo = url.UserPassword(p.Uri.User.Username(), pass)
+		} else {
+			userInfo = url.User(p.Uri.User.Username())
+		}
+	}
+	return &Plug{
+		Uri: &url.URL{
+			Scheme:   p.Uri.Scheme,
+			Opaque:   p.Uri.Opaque,
+			User:     userInfo,
+			Host:     p.Uri.Host,
+			Path:     p.Uri.Path,
+			RawQuery: p.Uri.RawQuery,
+			Fragment: p.Uri.Fragment,
+		},
+	}
 }
 
 // Handles passing http response and error onto response channel
