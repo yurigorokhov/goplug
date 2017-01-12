@@ -1,4 +1,4 @@
-// Package plug is a mutable HTTP request library
+// Package goplug is a mutable HTTP request library
 package goplug
 
 import (
@@ -10,12 +10,13 @@ import (
 
 //--- Types ---
 
-// Mutable HTTP Plug object
+// Plug object
 type Plug struct {
-	Uri *url.URL
+	Uri     *url.URL
+	headers map[string]string
 }
 
-// Response object
+// Result object
 type Result struct {
 	Response *http.Response
 	Error    error
@@ -26,7 +27,8 @@ type Result struct {
 // Create new plug from URL
 func NewFromUrl(uri *url.URL) *Plug {
 	return &Plug{
-		Uri: uri,
+		Uri:     uri,
+		headers: make(map[string]string),
 	}
 }
 
@@ -37,7 +39,8 @@ func New(uristring string) (plug *Plug, err error) {
 		return nil, err
 	}
 	return &Plug{
-		Uri: uri,
+		Uri:     uri,
+		headers: make(map[string]string),
 	}, nil
 }
 
@@ -103,11 +106,21 @@ func (p *Plug) Without(name string) *Plug {
 	return p
 }
 
+// WithHeader sets the request header
+func (p *Plug) WithHeader(name string, value string) *Plug {
+	p.headers[name] = value
+	return p
+}
+
 // Async HEAD request
 func (p *Plug) Head() (response chan Result) {
 	response = make(chan Result)
 	go performRequest(p, func() (*http.Response, error) {
-		return http.Head(p.Uri.String())
+		if req, err := prepareRequest(p, "HEAD", nil); err != nil {
+			return nil, err
+		} else {
+			return http.DefaultClient.Do(req)
+		}
 	}, response)
 	return response
 }
@@ -116,7 +129,11 @@ func (p *Plug) Head() (response chan Result) {
 func (p *Plug) Get() (response chan Result) {
 	response = make(chan Result)
 	go performRequest(p, func() (*http.Response, error) {
-		return http.Get(p.Uri.String())
+		if req, err := prepareRequest(p, "GET", nil); err != nil {
+			return nil, err
+		} else {
+			return http.DefaultClient.Do(req)
+		}
 	}, response)
 	return response
 }
@@ -128,14 +145,22 @@ func (p *Plug) String() string {
 
 // Async DELETE request with no body
 func (p *Plug) Delete() (response chan Result) {
-	return p.DeleteWithBody(strings.NewReader(""), "text/plain")
+	response = make(chan Result)
+	go performRequest(p, func() (*http.Response, error) {
+		if req, err := prepareRequest(p, "DELETE", nil); err != nil {
+			return nil, err
+		} else {
+			return http.DefaultClient.Do(req)
+		}
+	}, response)
+	return response
 }
 
 // Async DELETE request with a body in the request
 func (p *Plug) DeleteWithBody(reader io.Reader, contentType string) (response chan Result) {
 	response = make(chan Result)
 	go performRequest(p, func() (*http.Response, error) {
-		if req, err := http.NewRequest("DELETE", p.Uri.String(), reader); err != nil {
+		if req, err := prepareRequest(p, "DELETE", &reader); err != nil {
 			return nil, err
 		} else {
 			return http.DefaultClient.Do(req)
@@ -148,7 +173,7 @@ func (p *Plug) DeleteWithBody(reader io.Reader, contentType string) (response ch
 func (p *Plug) Put(reader io.Reader, contentType string) (response chan Result) {
 	response = make(chan Result)
 	go performRequest(p, func() (*http.Response, error) {
-		if req, err := http.NewRequest("PUT", p.Uri.String(), reader); err != nil {
+		if req, err := prepareRequest(p, "PUT", &reader); err != nil {
 			return nil, err
 		} else {
 			return http.DefaultClient.Do(req)
@@ -157,18 +182,17 @@ func (p *Plug) Put(reader io.Reader, contentType string) (response chan Result) 
 	return response
 }
 
-// Async POST request
+// Post request
 func (p *Plug) Post(reader io.Reader, contentType string) (response chan Result) {
 	response = make(chan Result)
 	go performRequest(p, func() (*http.Response, error) {
-		return http.Post(p.Uri.String(), contentType, reader)
+		if req, err := prepareRequest(p, "POST", &reader); err != nil {
+			return nil, err
+		} else {
+			return http.DefaultClient.Do(req)
+		}
 	}, response)
 	return response
-}
-
-// Async POST with text/plain
-func (p *Plug) PostPlainText(contents string) (response chan Result) {
-	return p.Post(strings.NewReader(contents), "text/plain")
 }
 
 // Clone this plug and return the copy
@@ -182,6 +206,10 @@ func (p *Plug) Clone() *Plug {
 			userInfo = url.User(p.Uri.User.Username())
 		}
 	}
+	newHeaders := make(map[string]string)
+	for k, v := range p.headers {
+		newHeaders[k] = v
+	}
 	return &Plug{
 		Uri: &url.URL{
 			Scheme:   p.Uri.Scheme,
@@ -192,6 +220,19 @@ func (p *Plug) Clone() *Plug {
 			RawQuery: p.Uri.RawQuery,
 			Fragment: p.Uri.Fragment,
 		},
+		headers: newHeaders,
+	}
+}
+
+// prepareRequest creates a request object ased on the verb, uri and headers
+func prepareRequest(p *Plug, verb string, r *io.Reader) (*http.Request, error) {
+	if req, err := http.NewRequest(verb, p.Uri.String(), nil); err != nil {
+		return nil, err
+	} else {
+		for k, v := range p.headers {
+			req.Header.Add(k, v)
+		}
+		return req, nil
 	}
 }
 
